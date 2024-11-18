@@ -1,0 +1,122 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Home</title>
+ <link rel="stylesheet" href="styles.css"> 
+</head>
+<body>
+  <div class="container">
+    <h1>Welcome to the Home Page</h1>
+    <button onclick="getUser()">Get Users</button>
+    <button onclick="logout()">Logout</button>
+    
+    <!-- Table to display the users -->
+    <table id="userTable">
+      <thead>
+        <tr>
+          <th>ID</th>
+          <th>Email</th>
+          <th>Password</th>
+          <th>Status</th>
+        </tr>
+      </thead>
+      <tbody>
+        <!-- User data will be inserted here -->
+      </tbody>
+    </table>
+
+    <div id="error-message" style="display:none; color:red; font-size:1.2rem;">
+      Failed to load user data. Please try again later.
+    </div>
+  </div>
+
+  <!-- Include Axios -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/axios/1.7.7/axios.min.js"></script>
+
+  <script>
+    // ฟังก์ชันที่ใช้สำหรับดึงข้อมูลผู้ใช้
+    async function getUser() {
+  try {
+    // ดึง Token จาก localStorage
+    const token = localStorage.getItem('token');
+    if (!token) {
+      alert('คุณไม่ได้ล็อกอิน!');
+      window.location.href = 'login.html';
+      return;
+    }
+
+    // ส่งคำขอไปยัง API เพื่อดึงข้อมูลผู้ใช้
+    const response = await axios.get('http://localhost:8000/api/users', {
+      headers: {
+        'Authorization': `Bearer ${token}` // ส่ง token ใน header
+      }
+    });
+
+    // ตรวจสอบว่า response.status เป็น 200 หรือไม่
+    if (response.status !== 200) {
+      throw new Error('ไม่สามารถเชื่อมต่อกับเซิร์ฟเวอร์');
+    }
+
+    let users = response.data; // เปลี่ยนจาก const เป็น let เพื่อให้สามารถเปลี่ยนค่าของตัวแปรได้
+
+    // ตรวจสอบว่า response.data เป็น array หรือไม่
+    if (Array.isArray(users)) {
+      console.log('Users:', users); // log ข้อมูลที่ได้รับจาก API
+    } else if (users && Array.isArray(users.users)) {
+      // หากข้อมูลอยู่ในคีย์ 'users'
+      console.log('Users:', users.users);
+      users = users.users; // ใช้ข้อมูลจาก key 'users'
+    } else {
+      throw new Error('ข้อมูลผู้ใช้ไม่ถูกต้อง');
+    }
+
+    // แสดงข้อมูลในตาราง
+    const tableBody = document.querySelector('#userTable tbody');
+    tableBody.innerHTML = ''; // ล้างข้อมูลในตารางก่อนจะใส่ข้อมูลใหม่
+
+    if (users.length === 0) {
+      const row = document.createElement('tr');
+      row.innerHTML = `<td colspan="4">No users found.</td>`;
+      tableBody.appendChild(row);
+    } else {
+      users.forEach(user => {
+        const row = document.createElement('tr');
+        row.innerHTML = `
+          <td>${user.id}</td>
+          <td>${user.email}</td>
+          <td>${user.password}</td>
+          <td>${user.status || 'N/A'}</td>
+        `;
+        tableBody.appendChild(row);
+      });
+    }
+
+    // แสดงตารางหลังจากโหลดข้อมูล
+    document.querySelector('#userTable').style.display = 'table';
+
+  } catch (error) {
+    console.error('Error fetching user data:', error);
+    alert(`เกิดข้อผิดพลาดในการดึงข้อมูลผู้ใช้: ${error.message}`);
+  }
+}
+
+
+    // ฟังก์ชันสำหรับ logout
+    function logout() {
+      localStorage.removeItem('token');
+      window.location.href = 'login.html';
+    }
+
+    // ตรวจสอบการล็อกอินเมื่อโหลดหน้า
+    window.onload = () => {
+      const token = localStorage.getItem("token");
+      if (!token) {
+        alert("Please log in to access this page.");
+        window.location.href = "login.html";
+      }
+    };
+  </script>
+</body>
+</html>
